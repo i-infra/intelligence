@@ -1,41 +1,34 @@
-# Getting Started
+### Behold.
 
-A template for kick starting a Cloudflare worker project using [`workers-rs`](https://github.com/cloudflare/workers-rs).
+``` rust
+use rand::seq::SliceRandom;
+use worker::*;
 
-This template is designed for compiling Rust to WebAssembly and publishing the resulting worker to 
-Cloudflare's [edge infrastructure](https://www.cloudflare.com/network/).
+#[event(fetch)]
+pub async fn main(req: Request, env: Env) -> Result<Response> {
+    let mut rng = rand::thread_rng();
+    let some_elements_of_str = include_str!("some_elements_of_intelligence_work-dulles.txt");
+    let mut sabo2: Vec<&str> = include_str!("sabo.txt").split("\n\n").collect();
+    sabo2.shuffle(&mut rng);
+    let sabo3: Vec<&str> = sabo2.get(0..73).unwrap().to_vec();
+    let mut cleaned: Vec<&str> = some_elements_of_str.split("\n\n").chain(sabo3).collect();
+    cleaned.shuffle(&mut rng);
 
-## Usage 
+    let router = Router::with_data(cleaned);
 
-This template starts you off with a `src/lib.rs` file, acting as an entrypoint for requests hitting
-your Worker. Feel free to add more code in this file, or create Rust modules anywhere else for this
-project to use. 
-
-With `wrangler`, you can build, test, and deploy your Worker with the following commands: 
-
-```bash
-# compiles your project to WebAssembly and will warn of any issues
-wrangler build 
-
-# run your Worker in an ideal development workflow (with a local server, file watcher & more)
-wrangler dev
-
-# deploy your Worker globally to the Cloudflare network (update your wrangler.toml file for configuration)
-wrangler publish
+    router
+        .get("/", |_, ctx| {
+            let mut r = Response::ok(ctx.data()[0]).unwrap();
+            r.headers_mut()
+                .set("Content-type", "text/plain; charset=UTF-8");
+            return Ok(r);
+        })
+        .get("/worker-version", |_, ctx| {
+            let version = ctx.var("WORKERS_RS_VERSION")?.to_string();
+            Response::ok(version)
+        })
+        .run(req, env)
+        .await
+}
 ```
-
-Read the latest `worker` crate documentation here: https://docs.rs/worker
-
-## WebAssembly
-
-`workers-rs` (the Rust SDK for Cloudflare Workers used in this template) is meant to be executed as 
-compiled WebAssembly, and as such so **must** all the code you write and depend upon. All crates and
-modules used in Rust-based Workers projects have to compile to the `wasm32-unknown-unknown` triple. 
-
-Read more about this on the [`workers-rs` project README](https://github.com/cloudflare/workers-rs).
-
-## Issues
-
-If you have any problems with the `worker` crate, please open an issue on the upstream project 
-issue tracker on the [`workers-rs` repository](https://github.com/cloudflare/workers-rs).
 
